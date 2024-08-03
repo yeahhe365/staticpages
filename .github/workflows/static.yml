@@ -257,7 +257,6 @@
     </div>
 
     <script>
-        // JavaScript 代码保持不变
         const playlistUrl = 'https://raw.githubusercontent.com/hujingguang/ChinaIPTV/main/cnTV_AutoUpdate.m3u8';
         const channelList = document.getElementById('channel-list');
         const player = videojs('my-video', {
@@ -270,6 +269,8 @@
 
         let currentChannelIndex = -1;
         let channels = [];
+        let lastClickTime = 0;
+        const doubleClickDelay = 300; // 毫秒
 
         function isValidIpv4Url(string) {
             try {
@@ -385,28 +386,35 @@
             playChannel(Math.min(channels.length - 1, currentChannelIndex + 1));
         });
 
-        // 添加触摸屏滑动切换频道功能
-        let touchStartX = 0;
-        let touchEndX = 0;
-
-        document.addEventListener('touchstart', function(e) {
-            touchStartX = e.changedTouches[0].screenX;
-        }, false);
-
-        document.addEventListener('touchend', function(e) {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe();
-        }, false);
-
-        function handleSwipe() {
-            if (touchEndX < touchStartX) {
-                // 向左滑动，下一个频道
-                playChannel(Math.min(channels.length - 1, currentChannelIndex + 1));
+        // 全屏双击切换频道
+        player.on('fullscreenchange', function() {
+            if (player.isFullscreen()) {
+                const playerElement = player.el();
+                playerElement.addEventListener('click', handleFullscreenClick);
+            } else {
+                const playerElement = player.el();
+                playerElement.removeEventListener('click', handleFullscreenClick);
             }
-            if (touchEndX > touchStartX) {
-                // 向右滑动，上一个频道
-                playChannel(Math.max(0, currentChannelIndex - 1));
+        });
+
+        function handleFullscreenClick(event) {
+            const currentTime = new Date().getTime();
+            const clickX = event.clientX;
+            const playerWidth = player.el().clientWidth;
+
+            if (currentTime - lastClickTime < doubleClickDelay) {
+                // 双击
+                if (clickX < playerWidth / 2) {
+                    // 左半边
+                    playChannel(Math.max(0, currentChannelIndex - 1));
+                } else {
+                    // 右半边
+                    playChannel(Math.min(channels.length - 1, currentChannelIndex + 1));
+                }
+                event.preventDefault(); // 防止暂停/播放
             }
+
+            lastClickTime = currentTime;
         }
     </script>
 </body>
